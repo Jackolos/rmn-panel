@@ -74,6 +74,12 @@ svg text { fill: var(--muted); font: 20px var(--mono); }
 .empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
 details summary { cursor: pointer; color: var(--accent); font-weight: 500; }
 a { color: var(--accent); }
+.chat { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; margin-bottom: 12px; padding: 2px; }
+.bubble { max-width: 88%; padding: 9px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.93rem; }
+.bubble.mensch { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+.bubble.rmn { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.bubble .t { display: block; font: 0.72rem var(--mono); opacity: 0.75; margin-bottom: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -124,6 +130,14 @@ a { color: var(--accent); }
         <button class="ghost" id="runNow">Lauf anfordern</button>
         <span class="toast" id="runMsg">Rmn läuft sonst gegen 10:45 und 20:45 Uhr.</span>
       </div>
+    </section>
+
+    <section>
+      <h2>Chat mit Rmn</h2>
+      <div class="chat" id="chatLog" aria-live="polite"></div>
+      <label for="chatIn" class="sr">Nachricht an Rmn</label>
+      <textarea id="chatIn" placeholder="Frag Rmn etwas – er antwortet beim nächsten Lauf."></textarea>
+      <div class="row"><button id="chatSend">Senden</button><span class="toast" id="chatMsg"></span></div>
     </section>
 
     <section>
@@ -280,9 +294,28 @@ a { color: var(--accent); }
       : "Rmn läuft sonst gegen 10:45 und 20:45 Uhr.";
   }
 
+  var chatSha = null;
+  function renderChat(msgs) {
+    var box = $("chatLog"); box.textContent = "";
+    if (!msgs.length) { var p = document.createElement("p"); p.className = "empty"; p.textContent = "Noch keine Nachrichten. Schreib Rmn etwas."; box.appendChild(p); }
+    msgs.slice(-50).forEach(function (m) {
+      var d = document.createElement("div"); d.className = "bubble " + (m.von === "mensch" ? "mensch" : "rmn");
+      var t = document.createElement("span"); t.className = "t";
+      var when = m.zeit ? new Date(m.zeit) : null;
+      t.textContent = (m.von === "mensch" ? "Du" : "Rmn") + (when && !isNaN(when) ? " · " + when.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
+      d.appendChild(t); d.appendChild(document.createTextNode(String(m.text || ""))); box.appendChild(d);
+    });
+    var last = msgs[msgs.length - 1];
+    $("chatMsg").textContent = last && last.von === "mensch" ? "Rmn antwortet beim nächsten Lauf." : "";
+    box.scrollTop = box.scrollHeight;
+  }
+  function loadChat() {
+    return readJson("chat.json").then(function (r) { chatSha = r.sha; renderChat(Array.isArray(r.data) ? r.data : []); return r; });
+  }
+
   function load() {
     $("ctlMsg").textContent = "";
-    return Promise.all([readJson("dashboard.json"), readJson("steuerung.json")]).then(function (res) {
+    return Promise.all([readJson("dashboard.json"), readJson("steuerung.json"), loadChat()]).then(function (res) {
       renderDashboard(res[0].data); ctlSha = res[1].sha; renderControl(res[1].data);
       $("login").hidden = true; $("app").hidden = false;
     }).catch(function (e) {
@@ -313,6 +346,21 @@ a { color: var(--accent); }
   $("unlock").addEventListener("click", function () {
     var b = this; b.disabled = true;
     saveControl({ entsperren: true }, $("unlockMsg"), "Entsperren angefordert – passiert beim nächsten Lauf.")
+      .then(function () { b.disabled = false; });
+  });
+  $("chatSend").addEventListener("click", function () {
+    var text = $("chatIn").value.trim().slice(0, 4000), b = this;
+    if (!text) return;
+    b.disabled = true; $("chatMsg").textContent = "Sende …";
+    loadChat().then(function (r) {
+      var msgs = (Array.isArray(r.data) ? r.data : []).concat([{ von: "mensch", text: text, zeit: new Date().toISOString() }]);
+      return gh("chat.json", { method: "PUT", body: { message: "Bedienfeld: Chat", sha: chatSha,
+        content: b64encode(JSON.stringify(msgs, null, 1) + "\n") } }).then(function (res) {
+        chatSha = res.content.sha; $("chatIn").value = ""; renderChat(msgs);
+        return ctl && ctl.lauf_anfordern ? null : saveControl({ lauf_anfordern: true }, $("runMsg"), "Lauf angefordert.");
+      });
+    }).then(function () { $("chatMsg").textContent = "Gesendet. Rmn antwortet beim nächsten Lauf."; })
+      .catch(function (e) { $("chatMsg").textContent = e.message; })
       .then(function () { b.disabled = false; });
   });
   $("runNow").addEventListener("click", function () {
