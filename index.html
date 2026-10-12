@@ -120,6 +120,10 @@ a { color: var(--accent); }
         <button id="saveCtl">Speichern</button>
         <span class="toast" id="ctlMsg"></span>
       </div>
+      <div class="row" style="border-top:1px solid var(--line);padding-top:12px">
+        <button class="ghost" id="runNow">Lauf anfordern</button>
+        <span class="toast" id="runMsg">Rmn läuft sonst um 10 und 20 Uhr.</span>
+      </div>
     </section>
 
     <section>
@@ -268,6 +272,12 @@ a { color: var(--accent); }
   function renderControl(c) {
     ctl = c; $("msg").value = c.nachricht || ""; $("pause").checked = !!c.pause;
     $("unlockMsg").textContent = c.entsperren ? "Entsperren ist angefordert – passiert beim nächsten Lauf." : "";
+    var next = new Date(); next.setMinutes(0, 0, 0); next.setHours(next.getHours() + 1);
+    var hh = String(next.getHours()).padStart(2, "0") + ":0x";
+    $("runNow").disabled = !!c.lauf_anfordern;
+    $("runMsg").textContent = c.lauf_anfordern
+      ? "Lauf angefordert – Rmn startet gegen " + hh + " Uhr (mindestens 20 Minuten nach dem letzten Lauf)."
+      : "Rmn läuft sonst um 10 und 20 Uhr.";
   }
 
   function load() {
@@ -304,6 +314,10 @@ a { color: var(--accent); }
     var b = this; b.disabled = true;
     saveControl({ entsperren: true }, $("unlockMsg"), "Entsperren angefordert – passiert beim nächsten Lauf.")
       .then(function () { b.disabled = false; });
+  });
+  $("runNow").addEventListener("click", function () {
+    var b = this; b.disabled = true;
+    saveControl({ lauf_anfordern: true }, $("runMsg"), "Lauf angefordert.");
   });
   $("reload").addEventListener("click", load);
   $("logout").addEventListener("click", function () { setToken(""); location.reload(); });
