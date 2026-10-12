@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Rmn Bedienfeld</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: eine schmale Kontroll-Spalte – Status oben, Steuerung, dann Zahlen und Verlauf. */
+:root {
+  --bg: #f3f4f2; --panel: #ffffff; --ink: #1d2422; --muted: #5e6b67; --line: #dde2df;
+  --accent: #0f6f66; --accent-ink: #ffffff;
+  --ok: #1f7a3a; --warn: #9a6200; --bad: #b42318; --ok-bg: #e5f3e8; --warn-bg: #fbf0dc; --bad-bg: #fde8e6;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121715; --panel: #1a211f; --ink: #e6ece9; --muted: #95a39e; --line: #2b3532;
+  --accent: #4fc1b3; --accent-ink: #0c1412;
+  --ok: #6fd08a; --warn: #f0b75a; --bad: #ff8a7a; --ok-bg: #16301f; --warn-bg: #33270f; --bad-bg: #3a1714;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121715; --panel: #1a211f; --ink: #e6ece9; --muted: #95a39e; --line: #2b3532;
+  --accent: #4fc1b3; --accent-ink: #0c1412;
+  --ok: #6fd08a; --warn: #f0b75a; --bad: #ff8a7a; --ok-bg: #16301f; --warn-bg: #33270f; --bad-bg: #3a1714;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+main { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 18px; }
+h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.meta { color: var(--muted); font-size: 0.85rem; font-family: var(--mono); }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.alarm { border-color: var(--bad); background: var(--bad-bg); color: var(--ink); display: grid; gap: 10px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.kpi .v { font: 600 1.6rem/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--muted); font-size: 0.8rem; }
+.bio { margin: 12px 0 0; color: var(--muted); font-size: 0.9rem; }
+textarea, input[type=password] { width: 100%; font: 15px/1.5 var(--sans); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+textarea { min-height: 96px; resize: vertical; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 12px; }
+button { font: 600 0.92rem var(--sans); border-radius: 8px; padding: 9px 16px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button.danger { background: var(--bad); border-color: var(--bad); color: var(--panel); }
+button:disabled { opacity: 0.55; cursor: default; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; }
+.switch span { width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--panel); transition: transform .15s; }
+.switch input:checked + span { background: var(--warn); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.toast { font-size: 0.88rem; color: var(--muted); }
+.quote { margin: 0; padding-left: 12px; border-left: 3px solid var(--accent); }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 0.78rem; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td.when { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+svg text { fill: var(--muted); font: 20px var(--mono); }
+.empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+a { color: var(--accent); }
+@media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>Rmn Bedienfeld</h1>
+    <span class="meta" id="stand">–</span>
+  </div>
+
+  <!-- Anmeldung -->
+  <section id="login" hidden>
+    <h2>Zugang einrichten</h2>
+    <p>Füge deinen GitHub-Token ein. Er bleibt nur in diesem Browser gespeichert und darf nur das Repo <b>rmn-steuerung</b> lesen und schreiben.</p>
+    <input type="password" id="token" autocomplete="off" placeholder="github_pat_…">
+    <div class="row"><button id="saveToken">Speichern und laden</button><span class="toast" id="loginMsg"></span></div>
+  </section>
+
+  <div id="app" hidden style="display:grid;gap:18px">
+    <section class="alarm" id="alarmBox" hidden>
+      <strong>Rmn ist gesperrt (Alarm).</strong>
+      <span id="alarmText"></span>
+      <div class="row" style="margin:0"><button class="danger" id="unlock">Entsperren beim nächsten Lauf</button><span class="toast" id="unlockMsg"></span></div>
+    </section>
+
+    <section>
+      <div class="top"><h2 style="margin:0">Status</h2><span class="pill" id="statusPill">–</span></div>
+      <div class="kpis" style="margin-top:14px">
+        <div class="kpi"><div class="v" id="kKarma">–</div><div class="l">Karma</div></div>
+        <div class="kpi"><div class="v" id="kFollower">–</div><div class="l">Follower</div></div>
+        <div class="kpi"><div class="v" id="kPosts">–</div><div class="l">Beiträge</div></div>
+        <div class="kpi"><div class="v" id="kComments">–</div><div class="l">Kommentare</div></div>
+      </div>
+      <p class="bio" id="bio"></p>
+    </section>
+
+    <section>
+      <h2>Steuerung</h2>
+      <label for="msg">Nachricht an Rmn (liest er bei jedem Lauf)</label>
+      <textarea id="msg" placeholder="z. B. Schreib diese Woche mehr über Business."></textarea>
+      <div class="row">
+        <label class="switch" for="pause"><input type="checkbox" id="pause"><span></span> Pause (Rmn beobachtet nur)</label>
+        <button id="saveCtl">Speichern</button>
+        <span class="toast" id="ctlMsg"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Karma-Verlauf</h2>
+      <div id="chart"></div>
+    </section>
+
+    <section>
+      <h2>Was der Wächter über Rmn sagt</h2>
+      <p class="quote" id="persona"></p>
+    </section>
+
+    <section>
+      <h2>Letzte Aktionen</h2>
+      <div class="tablewrap"><table><thead><tr><th>Lauf</th><th>Art</th><th>Was</th><th>Ergebnis</th></tr></thead><tbody id="actions"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Wie kamen seine Kommentare an?</h2>
+      <div class="tablewrap"><table><thead><tr><th>Wann</th><th>👍</th><th>👎</th><th>Kommentar</th></tr></thead><tbody id="comments"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Eigene Beiträge</h2>
+      <div class="tablewrap"><table><thead><tr><th>Wann</th><th>Score</th><th>Komm.</th><th>Titel</th></tr></thead><tbody id="posts"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Rmns letzte Zusammenfassung</h2>
+      <p id="kurz" style="margin:0;white-space:pre-line"></p>
+    </section>
+
+    <div class="row" style="justify-content:space-between">
+      <button class="ghost" id="reload">Neu laden</button>
+      <button class="ghost" id="logout">Token vergessen</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var REPO = "Jackolos/rmn-steuerung";
+  var API = "https://api.github.com/repos/" + REPO + "/contents/";
+  var KEY = "rmn-panel-token";
+  var ctlSha = null, ctl = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function getToken() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
+  function setToken(t) { try { if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY); } catch (e) {} }
+
+  function b64decode(s) {
+    var bin = atob(s.replace(/\n/g, "")), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  function b64encode(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function gh(path, opts) {
+    opts = opts || {};
+    return fetch(API + path, {
+      method: opts.method || "GET",
+      headers: { "Authorization": "Bearer " + getToken(), "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28" },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store"
+    }).then(function (r) {
+      if (r.status === 401 || r.status === 403) throw new Error("Token ungültig oder ohne Zugriff auf rmn-steuerung.");
+      if (r.status === 404) throw new Error("rmn-steuerung nicht gefunden – hat der Token Zugriff auf genau dieses Repo?");
+      if (r.status === 409 || r.status === 422) throw new Error("Datei wurde inzwischen geändert. Bitte neu laden und erneut speichern.");
+      if (!r.ok) throw new Error("GitHub antwortet mit Fehler " + r.status + ".");
+      return r.json();
+    });
+  }
+  function readJson(path) {
+    return gh(path).then(function (f) { return { sha: f.sha, data: JSON.parse(b64decode(f.content)) }; });
+  }
+
+  function text(el, v) { el.textContent = (v === undefined || v === null || v === "") ? "–" : String(v); }
+  function row(tbody, cells, classes) {
+    var tr = document.createElement("tr");
+    cells.forEach(function (c, i) { var td = document.createElement("td"); td.textContent = c; if (classes && classes[i]) td.className = classes[i]; tr.appendChild(td); });
+    tbody.appendChild(tr);
+  }
+  function emptyRow(tbody, cols, msg) {
+    var tr = document.createElement("tr"), td = document.createElement("td");
+    td.colSpan = cols; td.className = "empty"; td.textContent = msg; tr.appendChild(td); tbody.appendChild(tr);
+  }
+
+  var STATUS = { aktiv: ["ok", "aktiv"], pause: ["warn", "Pause"], probelauf: ["warn", "Probelauf"], alarm: ["bad", "gesperrt"] };
+
+  function renderDashboard(d) {
+    text($("stand"), d.stand ? "Stand " + d.stand : "noch keine Daten");
+    var s = STATUS[d.status] || ["warn", d.status || "unbekannt"];
+    $("statusPill").className = "pill " + s[0]; $("statusPill").textContent = s[1];
+    var p = d.profil || {};
+    text($("kKarma"), p.karma); text($("kFollower"), p.follower); text($("kPosts"), p.beitraege); text($("kComments"), p.kommentare);
+    $("bio").textContent = p.bio ? "Bio: " + p.bio : "";
+    $("alarmBox").hidden = d.status !== "alarm";
+    $("alarmText").textContent = d.alarm_text || "";
+    text($("persona"), d.waechter_meinung);
+    $("kurz").textContent = d.kurz || "–";
+
+    var a = $("actions"); a.textContent = "";
+    (d.aktionen || []).forEach(function (x) { row(a, [x.lauf, x.art, x.was, x.ergebnis], ["when"]); });
+    if (!(d.aktionen || []).length) emptyRow(a, 4, "Noch keine Aktionen.");
+    var c = $("comments"); c.textContent = "";
+    (d.kommentare || []).forEach(function (x) { row(c, [x.wann, x.up, x.down, x.anfang], ["when", "num", "num"]); });
+    if (!(d.kommentare || []).length) emptyRow(c, 4, "Noch keine Kommentare.");
+    var po = $("posts"); po.textContent = "";
+    (d.beitraege || []).forEach(function (x) { row(po, [x.wann, x.score, x.kommentare, x.titel], ["when", "num", "num"]); });
+    if (!(d.beitraege || []).length) emptyRow(po, 4, "Noch keine eigenen Beiträge.");
+    drawChart(d.karma_verlauf || []);
+  }
+
+  function drawChart(pts) {
+    var box = $("chart"); box.textContent = "";
+    if (pts.length < 2) { var p = document.createElement("p"); p.className = "empty"; p.textContent = "Der Verlauf erscheint nach ein paar Läufen."; box.appendChild(p); return; }
+    var W = 700, H = 240, L = 48, R = 16, T = 16, B = 40;
+    var max = Math.max(1, Math.max.apply(null, pts.map(function (p) { return p.karma || 0; })));
+    var step = Math.max(1, Math.ceil(max / 4)), top = step * 4;
+    var x = function (i) { return L + (W - L - R) * (i / (pts.length - 1)); };
+    var y = function (v) { return T + (H - T - B) * (1 - v / top); };
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", "100%");
+    svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "Karma pro Lauf, zuletzt " + (pts[pts.length - 1].karma || 0));
+    function el(name, attrs, txt) { var e = document.createElementNS(ns, name); for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt !== undefined) e.textContent = txt; svg.appendChild(e); return e; }
+    for (var v = 0; v <= top; v += step) {
+      el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--line)", "stroke-width": 1 });
+      el("text", { x: L - 8, y: y(v) + 7, "text-anchor": "end" }, String(v));
+    }
+    var line = pts.map(function (p, i) { return x(i) + "," + y(p.karma || 0); }).join(" ");
+    el("polygon", { points: L + "," + y(0) + " " + line + " " + x(pts.length - 1) + "," + y(0), fill: "var(--accent)", opacity: "0.12" });
+    el("polyline", { points: line, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linejoin": "round" });
+    var last = pts[pts.length - 1];
+    el("circle", { cx: x(pts.length - 1), cy: y(last.karma || 0), r: 4.5, fill: "var(--accent)" });
+    el("text", { x: L, y: H - 8 }, (pts[0].lauf || "").slice(5, 10).replace("-", "."));
+    el("text", { x: W - R, y: H - 8, "text-anchor": "end" }, (last.lauf || "").slice(5, 10).replace("-", ".") + " · " + (last.karma || 0));
+    box.appendChild(svg);
+  }
+
+  function renderControl(c) {
+    ctl = c; $("msg").value = c.nachricht || ""; $("pause").checked = !!c.pause;
+    $("unlockMsg").textContent = c.entsperren ? "Entsperren ist angefordert – passiert beim nächsten Lauf." : "";
+  }
+
+  function load() {
+    $("ctlMsg").textContent = "";
+    return Promise.all([readJson("dashboard.json"), readJson("steuerung.json")]).then(function (res) {
+      renderDashboard(res[0].data); ctlSha = res[1].sha; renderControl(res[1].data);
+      $("login").hidden = true; $("app").hidden = false;
+    }).catch(function (e) {
+      $("app").hidden = true; $("login").hidden = false; $("loginMsg").textContent = e.message;
+    });
+  }
+
+  function saveControl(patch, msgEl, doneText) {
+    var next = Object.assign({}, ctl || {}, patch, { geaendert: new Date().toISOString() });
+    msgEl.textContent = "Speichere …";
+    return gh("steuerung.json", { method: "PUT", body: {
+      message: "Bedienfeld: Steuerung geaendert", sha: ctlSha,
+      content: b64encode(JSON.stringify(next, null, 2) + "\n") } })
+      .then(function (r) { ctlSha = r.content.sha; ctl = next; msgEl.textContent = doneText; renderControl(next); })
+      .catch(function (e) { msgEl.textContent = e.message; });
+  }
+
+  $("saveToken").addEventListener("click", function () {
+    var t = $("token").value.trim();
+    if (!t) { $("loginMsg").textContent = "Bitte einen Token einfügen."; return; }
+    setToken(t); $("token").value = ""; $("loginMsg").textContent = "Lade …"; load();
+  });
+  $("saveCtl").addEventListener("click", function () {
+    var b = this; b.disabled = true;
+    saveControl({ nachricht: $("msg").value.slice(0, 3000), pause: $("pause").checked }, $("ctlMsg"),
+      "Gespeichert. Rmn liest es beim nächsten Lauf.").then(function () { b.disabled = false; });
+  });
+  $("unlock").addEventListener("click", function () {
+    var b = this; b.disabled = true;
+    saveControl({ entsperren: true }, $("unlockMsg"), "Entsperren angefordert – passiert beim nächsten Lauf.")
+      .then(function () { b.disabled = false; });
+  });
+  $("reload").addEventListener("click", load);
+  $("logout").addEventListener("click", function () { setToken(""); location.reload(); });
+
+  if (getToken()) load(); else { $("login").hidden = false; $("stand").textContent = "nicht angemeldet"; }
+})();
+</script>
+</body>
+</html>
