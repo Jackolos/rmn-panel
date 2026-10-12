@@ -615,6 +615,24 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
   .chart-box .kline.draw { stroke-dashoffset: 0; }
 }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* Live-Abfragen */
+.live-modes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.live-modes [aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.live-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.live-form .field { flex: 1 1 220px; min-width: 0; }
+.live-form select.field { flex: 0 1 150px; }
+.live-out { display: grid; gap: 10px; margin-top: 6px; }
+.live-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--panel-2); min-width: 0; }
+.live-item .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: .78rem var(--mono); color: var(--muted); margin-bottom: 4px; }
+.live-item h4 { margin: 2px 0 4px; font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.live-item p { margin: 0; color: var(--muted); font-size: .92rem; overflow-wrap: anywhere; }
+.live-item a { color: var(--accent); }
+.live-prof { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+.live-prof div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.live-prof b { display: block; font: 700 1.3rem var(--mono); font-variant-numeric: tabular-nums; }
+.live-prof span { font-size: .78rem; color: var(--muted); }
+@media (max-width: 520px) { .live-prof { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -639,6 +657,7 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
       <a href="#steuerung" data-spy="steuerung">Steuerung</a>
       <a href="#vorschlaege" data-spy="vorschlaege">Vorschläge <span class="badge vbadge" hidden>0</span></a>
       <a href="#chat" data-spy="chat">Chat</a>
+      <a href="#live" data-spy="live">Live</a>
       <a href="#daten" data-spy="daten">Daten</a>
       <a href="#protokoll" data-spy="protokoll">Protokoll</a>
     </nav>
@@ -662,6 +681,7 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
       <a href="#steuerung" data-spy="steuerung">Steuerung</a>
       <a href="#vorschlaege" data-spy="vorschlaege">Vorschläge <span class="badge vbadge" hidden>0</span></a>
       <a href="#chat" data-spy="chat">Chat</a>
+      <a href="#live" data-spy="live">Live</a>
       <a href="#daten" data-spy="daten">Daten</a>
       <a href="#protokoll" data-spy="protokoll">Protokoll</a>
     </nav>
@@ -1003,6 +1023,29 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
         <div class="row"><button class="btn primary magnetic" type="button" id="chatSend">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 20 4l-6 16-3-7z"/></svg>Senden</button>
           <span class="note" id="chatMsg" role="status"></span><span class="counter"><span id="chatCount">0 / 4000</span> · <kbd class="mono">Strg+Enter</kbd></span></div>
+      </div>
+    </section>
+
+    <!-- Live -->
+    <section class="wrap section" id="live" aria-labelledby="h-live">
+      <header class="sec-head"><span class="sec-no" aria-hidden="true">●</span><h2 id="h-live" tabindex="-1">Live auf Moltbook</h2><p class="sec-sub">Sofort, ohne auf einen Lauf zu warten – direkt von Moltbook gelesen (nur lesen, ohne Schlüssel).</p></header>
+      <div class="card reveal">
+        <div class="live-modes" role="tablist" aria-label="Live-Abfrage">
+          <button class="btn small ghost" type="button" role="tab" aria-selected="true" data-live="suche">Suche</button>
+          <button class="btn small ghost" type="button" role="tab" aria-selected="false" data-live="agent">Agent</button>
+          <button class="btn small ghost" type="button" role="tab" aria-selected="false" data-live="feed">Feed jetzt</button>
+          <button class="btn small ghost" type="button" role="tab" aria-selected="false" data-live="rmn">Rmn jetzt</button>
+        </div>
+        <form class="live-form" id="liveForm" autocomplete="off">
+          <label for="liveIn" class="sr" id="liveLabel">Suchbegriff</label>
+          <input class="field" id="liveIn" maxlength="100" placeholder="z. B. memory, trust, business …">
+          <select class="field" id="liveSort" aria-label="Sortierung" hidden>
+            <option value="hot">Hot</option><option value="new">Neu</option><option value="top">Top</option><option value="rising">Steigend</option>
+          </select>
+          <button class="btn primary small" type="submit" id="liveGo">Abfragen</button>
+        </form>
+        <p class="note" id="liveMsg" role="status"></p>
+        <div class="live-out" id="liveOut" aria-live="polite"></div>
       </div>
     </section>
 
@@ -2384,6 +2427,7 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
     if (loggedIn) {
       var n = vorschlaege.filter(function (v) { return v && v.status === "offen"; }).length;
       c.push({ g: "Springen zu", i: "→", l: "Zum Chat", k: "nachricht schreiben", fn: function () { goTo("chat", "chatIn"); } });
+      c.push({ g: "Springen zu", i: "●", l: "Live auf Moltbook suchen", k: "live suche agent feed jetzt sofort", fn: function () { goTo("live", "liveIn"); } });
       c.push({ g: "Springen zu", i: "→", l: "Zu den Vorschlägen" + (n ? " (" + n + " offen)" : ""), k: "annehmen ablehnen regel community", fn: function () { goTo("vorschlaege"); } });
       c.push({ g: "Springen zu", i: "→", l: "Zur Steuerung", k: "nachricht pause speichern", fn: function () { goTo("steuerung"); } });
       c.push({ g: "Springen zu", i: "→", l: "Zur Übersicht", k: "karma follower status", fn: function () { goTo("uebersicht"); } });
@@ -2452,6 +2496,113 @@ html.vt-theme::view-transition-new(root) { animation: vt-reveal .7s cubic-bezier
   });
 
   mqReduce.addEventListener("change", function () { if (reduced()) Sea.stop(); else Sea.start(); Sea.resize(); Ablauf.setMode(); Lobster3D.motion(); });
+
+  /* ============ Live-Abfragen direkt bei Moltbook (oeffentlich, nur lesen, ohne Schluessel) ============ */
+  var Live = (function () {
+    var MB = "https://www.moltbook.com/api/v1";
+    var mode = "suche", busy = false;
+    var HINT = { suche: ["Suchbegriff", "z. B. memory, trust, business …"], agent: ["Agentenname", "z. B. rmnde, lightningzero …"],
+                 feed: ["Community (leer = alle)", "z. B. philosophy, ai … (leer lassen für alle)"], rmn: ["Abfrage", ""] };
+    function clean(t) { return String(t || "").replace(/⟦\/?HL⟧/g, ""); }
+    function short(t, n) { t = clean(t).replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; }
+    function get(path, params) {
+      var u = new URL(MB + path);
+      Object.keys(params || {}).forEach(function (k) { u.searchParams.set(k, params[k]); });
+      return fetch(u.toString(), { headers: { "Accept": "application/json" }, cache: "no-store" }).then(function (r) {
+        if (r.status === 404) throw new Error("Nicht gefunden.");
+        if (r.status === 429) throw new Error("Moltbook bremst gerade (zu viele Anfragen). Kurz warten.");
+        if (!r.ok) throw new Error("Moltbook antwortet mit Fehler " + r.status + ".");
+        return r.json();
+      });
+    }
+    function link(textValue, href) {
+      var a = el("a", "", textValue);
+      a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+      return a;
+    }
+    function postCard(p) {
+      var d = el("article", "live-item"), meta = el("div", "meta");
+      var sub = (p.submolt && p.submolt.name) || p.submolt_name || "?";
+      var au = (p.author && p.author.name) || p.author_name || "?";
+      meta.appendChild(el("span", "chip sea", "m/" + sub));
+      meta.appendChild(el("span", "", "von " + au));
+      meta.appendChild(el("span", "", "▲ " + (p.score != null ? p.score : (p.upvotes || 0))));
+      meta.appendChild(el("span", "", "💬 " + (p.comment_count || 0)));
+      if (p.created_at) meta.appendChild(el("span", "", String(p.created_at).slice(0, 10)));
+      if (p.is_spam) meta.appendChild(el("span", "chip bad", "Spam"));
+      d.appendChild(meta);
+      var h = el("h4"), id = p.id || p.post_id;
+      if (id) h.appendChild(link(short(p.title, 200), "https://www.moltbook.com/post/" + encodeURIComponent(id)));
+      else h.textContent = short(p.title, 200);
+      d.appendChild(h);
+      d.appendChild(el("p", "", short(p.content || p.content_preview, 320)));
+      return d;
+    }
+    function profile(name, out) {
+      return get("/agents/profile", { name: name }).then(function (res) {
+        var a = res.agent || {};
+        var head = el("article", "live-item"), h = el("h4");
+        h.appendChild(link(a.display_name || a.name || name, "https://www.moltbook.com/u/" + encodeURIComponent(a.name || name)));
+        head.appendChild(h);
+        head.appendChild(el("p", "", short(a.description, 400) || "Keine Bio."));
+        var grid = el("div", "live-prof");
+        [["Karma", a.karma], ["Follower", a.follower_count], ["Beiträge", a.posts_count], ["Kommentare", a.comments_count]].forEach(function (x) {
+          var c = el("div"); c.appendChild(el("b", "", x[1] != null ? x[1] : "–")); c.appendChild(el("span", "", x[0])); grid.appendChild(c);
+        });
+        head.appendChild(grid);
+        head.appendChild(el("p", "", "Dabei seit " + String(a.created_at || "").slice(0, 10) + (a.is_claimed ? " · bestätigt" : "")));
+        out.appendChild(head);
+        (res.recentPosts || []).slice(0, 5).forEach(function (p) { out.appendChild(postCard(p)); });
+        var cs = (res.recentComments || []).slice(0, 5);
+        if (cs.length) out.appendChild(el("p", "note", "Letzte Kommentare:"));
+        cs.forEach(function (c) {
+          var d = el("article", "live-item"), meta = el("div", "meta");
+          meta.appendChild(el("span", "", String(c.created_at || "").slice(0, 16).replace("T", " ")));
+          meta.appendChild(el("span", "chip up", "▲ " + (c.upvotes || 0)));
+          if (c.post && c.post.title) meta.appendChild(el("span", "", "zu „" + short(c.post.title, 60) + "“"));
+          d.appendChild(meta); d.appendChild(el("p", "", short(c.content, 400))); out.appendChild(d);
+        });
+      });
+    }
+    function run() {
+      if (busy) return;
+      var q = $("liveIn").value.trim(), out = $("liveOut"), msg = $("liveMsg");
+      if (mode === "suche" && q.length < 2) { msg.textContent = "Bitte mindestens 2 Zeichen eingeben."; return; }
+      if (mode === "agent" && !/^[\w-]{1,40}$/.test(q)) { msg.textContent = "Bitte einen gültigen Agentennamen eingeben (Buchstaben, Zahlen, - und _)."; return; }
+      if (mode === "feed" && q && !/^[a-z0-9-]{2,30}$/.test(q)) { msg.textContent = "Community-Namen bestehen aus Kleinbuchstaben, Zahlen und Bindestrichen."; return; }
+      busy = true; $("liveGo").disabled = true; msg.textContent = "Frage Moltbook …"; out.textContent = "";
+      var p;
+      if (mode === "suche") p = get("/search", { q: q, type: "posts", limit: 15 }).then(function (r) {
+        var items = r.results || r.posts || [];
+        msg.textContent = items.length + " Treffer für „" + q + "“."; items.forEach(function (x) { out.appendChild(postCard(x)); });
+      });
+      else if (mode === "agent") p = profile(q, out).then(function () { msg.textContent = "Profil von " + q + " – live."; });
+      else if (mode === "feed") {
+        var params = { sort: $("liveSort").value, limit: 15 }; if (q) params.submolt = q;
+        p = get("/posts", params).then(function (r) {
+          var items = r.posts || [];
+          msg.textContent = items.length + " Beiträge " + (q ? "aus m/" + q : "aus ganz Moltbook") + " · " + $("liveSort").selectedOptions[0].textContent + " · jetzt";
+          items.forEach(function (x) { out.appendChild(postCard(x)); });
+        });
+      }
+      else p = profile("rmnde", out).then(function () { msg.textContent = "Rmns Profil – live, Stand jetzt."; });
+      p.catch(function (e) { msg.textContent = e && e.message ? e.message : "Abfrage fehlgeschlagen."; })
+       .then(function () { busy = false; $("liveGo").disabled = false; });
+    }
+    function setMode(m) {
+      mode = m;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-live]"), function (b) { b.setAttribute("aria-selected", b.getAttribute("data-live") === m ? "true" : "false"); });
+      $("liveLabel").textContent = HINT[m][0]; $("liveIn").placeholder = HINT[m][1];
+      $("liveIn").hidden = (m === "rmn"); $("liveSort").hidden = (m !== "feed");
+      $("liveOut").textContent = ""; $("liveMsg").textContent = ""; $("liveIn").value = "";
+      if (m === "rmn" || m === "feed") run(); else $("liveIn").focus();
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-live]"), function (b) {
+      b.addEventListener("click", function () { setMode(b.getAttribute("data-live")); });
+    });
+    $("liveForm").addEventListener("submit", function (e) { e.preventDefault(); run(); });
+    return { setMode: setMode };
+  })();
 
   /* ============ Start ============ */
   updateCounters();
