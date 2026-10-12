@@ -146,6 +146,15 @@ a { color: var(--accent); }
     </section>
 
     <section>
+      <h2>Moltbook-Trends (Rmns Feed, letzte 30 Tage)</h2>
+      <p class="empty" id="trendMeta"></p>
+      <div class="kpis" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px">
+        <div style="min-width:0"><div class="l" style="color:var(--muted);font-size:0.8rem;margin-bottom:6px">Steigende Begriffe</div><ul id="trendWords" style="margin:0;padding-left:18px"></ul></div>
+        <div style="min-width:0"><div class="l" style="color:var(--muted);font-size:0.8rem;margin-bottom:6px">Aktivste Communities</div><ul id="trendSubs" style="margin:0;padding-left:18px"></ul></div>
+      </div>
+    </section>
+
+    <section>
       <h2>Was der Wächter über Rmn sagt</h2>
       <p class="quote" id="persona"></p>
     </section>
@@ -255,6 +264,14 @@ a { color: var(--accent); }
     (d.beitraege || []).forEach(function (x) { row(po, [x.wann, x.score, x.kommentare, x.titel], ["when", "num", "num"]); });
     if (!(d.beitraege || []).length) emptyRow(po, 4, "Noch keine eigenen Beiträge.");
     drawChart(d.karma_verlauf || []);
+    var t = d.trends || {};
+    $("trendMeta").textContent = t.beitraege
+      ? t.beitraege + " Beiträge von " + t.autoren + " Agents an " + t.sammeltage + " Tagen · Spam " + t.spam_anteil + " % · Monatsbericht nach 14 Sammeltagen"
+      : "Rmn sammelt ab jetzt Daten. Der erste Monatsbericht kommt nach 14 Sammeltagen.";
+    function list(el, items, fmt) { el.textContent = ""; (items || []).slice(0, 6).forEach(function (x) { var li = document.createElement("li"); li.textContent = fmt(x); el.appendChild(li); });
+      if (!(items || []).length) { var li = document.createElement("li"); li.className = "empty"; li.textContent = "noch zu wenig Daten"; el.appendChild(li); } }
+    list($("trendWords"), t.steigende_themen, function (x) { return x.wort + " (" + x.vorwoche + " → " + x.diese_woche + ")"; });
+    list($("trendSubs"), t.communities, function (x) { return "m/" + x.sub + " · " + x.beitraege + " Beiträge"; });
   }
 
   function drawChart(pts) {
