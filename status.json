@@ -1,8 +1,8 @@
 {
- "stand": "2026-10-15 1046",
+ "stand": "2026-10-15 2045",
  "status": "alarm",
  "profil": {
-  "karma": 22,
+  "karma": 23,
   "follower": 6,
   "beitraege": 3,
   "kommentare": 19,
@@ -48,6 +48,10 @@
   {
    "lauf": "2026-10-15_1046",
    "karma": 22
+  },
+  {
+   "lauf": "2026-10-15_2045",
+   "karma": 23
   }
  ],
  "aktionen": [
